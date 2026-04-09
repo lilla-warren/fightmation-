@@ -2,374 +2,430 @@ import streamlit as st
 import time
 import math
 import random
-from PIL import Image, ImageDraw, ImageFilter, ImageEnhance
+from PIL import Image, ImageDraw, ImageFilter
 import numpy as np
 
 # Page setup
 st.set_page_config(
-    page_title="Smooth Cartoon Animation", 
+    page_title="Classic Cartoon - Tom & Jerry Style", 
     layout="wide",
-    page_icon="🎨"
+    page_icon="🐭"
 )
 
-# Custom CSS for smooth transitions
+# Custom CSS for cartoon feel
 st.markdown("""
 <style>
-    /* Smooth fade transitions */
-    @keyframes smoothFade {
-        0% { opacity: 0; transform: scale(0.95); }
-        100% { opacity: 1; transform: scale(1); }
+    @keyframes cartoonPop {
+        0% { transform: scale(0); opacity: 0; }
+        80% { transform: scale(1.2); }
+        100% { transform: scale(1); opacity: 1; }
     }
     
-    @keyframes smoothSlide {
-        0% { transform: translateX(-50px); opacity: 0; }
-        100% { transform: translateX(0); opacity: 1; }
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-5px); }
+        75% { transform: translateX(5px); }
     }
     
-    @keyframes smoothBounce {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-15px); }
+    .pop-effect {
+        animation: cartoonPop 0.3s ease-out;
     }
     
-    @keyframes smoothWiggle {
-        0%, 100% { transform: rotate(0deg); }
-        25% { transform: rotate(-3deg); }
-        75% { transform: rotate(3deg); }
+    .shake-effect {
+        animation: shake 0.1s ease-in-out 3;
     }
     
-    .smooth-fade {
-        animation: smoothFade 0.3s ease-out;
-    }
-    
-    .smooth-slide {
-        animation: smoothSlide 0.4s ease-out;
-    }
-    
-    .smooth-bounce {
-        animation: smoothBounce 0.5s ease-in-out infinite;
-    }
-    
-    .frame-transition {
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    
-    /* Cartoon canvas style */
-    .animation-canvas {
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-        border-radius: 20px;
-        padding: 20px;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    .cartoon-title {
+        font-family: 'Impact', 'Arial Black', sans-serif;
+        text-shadow: 3px 3px 0px #FFD700;
+        letter-spacing: 2px;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# ========== SMOOTH ANIMATION SYSTEM ==========
+# ========== CLASSIC CARTOON CHARACTERS ==========
 
-def ease_in_out_cubic(t):
-    """Smooth easing function - like professional animation"""
-    if t < 0.5:
-        return 4 * t * t * t
-    else:
-        return 1 - pow(-2 * t + 2, 3) / 2
-
-def ease_out_back(t):
-    """Spring effect - like cartoon bounce"""
-    c1 = 1.70158
-    c3 = c1 + 1
-    return 1 + c3 * pow(t - 1, 3) + c1 * pow(t - 1, 2)
-
-def squash_and_stretch(value, intensity=0.2):
-    """Squash and stretch effect like FlipaClip"""
-    if value > 0:
-        return 1 + (value * intensity)
-    else:
-        return 1 / (1 + (abs(value) * intensity))
-
-class SmoothAnimator:
-    """Professional animation controller with easing"""
+class ClassicCartoon:
+    """Hand-drawn frame-by-frame cartoon animation"""
     
     @staticmethod
-    def draw_smooth_fighter(img, draw, frame, action="idle", squash=0):
-        """Draw fighter with squash & stretch"""
-        width, height = 300, 400
-        
-        # Squash and stretch effect
-        scale_x = squash_and_stretch(squash, 0.3)
-        scale_y = 2 - scale_x
-        
-        # Colors
-        if frame % 2 == 0:
-            body_color = (255, 80, 80)
-        else:
-            body_color = (80, 80, 255)
-        
-        # Body with stretch
-        if action == "attack":
-            # Stretched punch pose
-            stretch = 1 + abs(squash) * 0.5
-            draw.ellipse([100, 150 - stretch*20, 220, 320 + stretch*20], 
-                        fill=body_color, outline='black', width=3)
-            # Extended arm
-            draw.ellipse([200 + squash*50, 120, 280 + squash*50, 200], 
-                        fill=body_color, outline='black', width=3)
-        elif action == "hit":
-            # Squashed when hit
-            draw.ellipse([100 + squash*20, 150, 220 - squash*20, 320], 
-                        fill=body_color, outline='black', width=3)
-        else:
-            # Normal with slight idle bounce
-            bounce = math.sin(frame * 0.5) * 5
-            draw.ellipse([100, 100 + bounce, 220, 300 + bounce], 
-                        fill=body_color, outline='black', width=3)
-        
-        # Head with follow-through
-        head_y = 40 + (squash * 10)
-        draw.ellipse([110, head_y, 210, 140 + head_y], 
-                    fill=(255, 220, 150), outline='black', width=3)
-        
-        # Eyes that track movement
-        eye_offset = squash * 10
-        draw.ellipse([135 + eye_offset, 80, 152 + eye_offset, 97], 
-                    fill='white', outline='black', width=2)
-        draw.ellipse([168 + eye_offset, 80, 185 + eye_offset, 97], 
-                    fill='white', outline='black', width=2)
-        draw.ellipse([140 + eye_offset, 85, 147 + eye_offset, 92], fill='black')
-        draw.ellipse([173 + eye_offset, 85, 180 + eye_offset, 92], fill='black')
-        
-        return img
-
-    @staticmethod
-    def draw_smooth_background(frame, transition=0):
-        """Animated background with smooth transitions"""
-        img = Image.new('RGB', (800, 500))
+    def draw_cat(frame, action="idle", emotion="neutral"):
+        """Draw a Tom-like cat character"""
+        img = Image.new('RGBA', (400, 500), (0, 0, 0, 0))
         draw = ImageDraw.Draw(img)
         
-        # Time of day based on frame
-        if frame < 180:  # Day
-            t = frame / 180
-            r = 135 - int(100 * t)
-            g = 206 - int(100 * t)
-            b = 235 - int(150 * t)
-        elif frame < 360:  # Sunset
-            t = (frame - 180) / 180
-            r = 255 - int(55 * t)
-            g = 106 - int(30 * t)
-            b = 85 - int(20 * t)
-        else:  # Night
-            r, g, b = 25, 25, 50
+        # Blue-gray cat color
+        cat_color = (70, 130, 180)
+        belly_color = (200, 210, 220)
         
-        # Smooth sky gradient
-        for i in range(500):
-            factor = i / 500
-            current_r = int(r * (1 - factor) + 25 * factor)
-            current_g = int(g * (1 - factor) + 25 * factor)
-            current_b = int(b * (1 - factor) + 50 * factor)
-            draw.line([(0, i), (800, i)], fill=(current_r, current_g, current_b))
-        
-        # Animated clouds that float
-        cloud_x = (frame * 0.5) % 800
-        draw.ellipse([cloud_x, 80, cloud_x+60, 120], fill='white', outline='black', width=2)
-        draw.ellipse([cloud_x+30, 60, cloud_x+90, 100], fill='white', outline='black', width=2)
-        draw.ellipse([cloud_x-20, 70, cloud_x+40, 110], fill='white', outline='black', width=2)
-        
-        # Animated sun/moon with glow
-        if frame < 360:
-            # Sun with pulsing glow
-            sun_size = 80 + math.sin(frame * 0.05) * 5
-            draw.ellipse([680, 50, 760, 130], fill=(255, 255, 100), outline='black', width=2)
-            # Glow effect
-            for i in range(3):
-                alpha = 50 - i * 15
-                draw.ellipse([680-i*5, 50-i*5, 760+i*5, 130+i*5], 
-                            fill=(255, 255, 100, alpha))
+        # EXAGGERATED BODY MOVEMENTS based on action
+        if action == "squash":
+            # Squashed flat (landing)
+            body_height = 80
+            body_width = 160
+            y_offset = 80
+        elif action == "stretch":
+            # Stretched tall (running)
+            body_height = 180
+            body_width = 100
+            y_offset = 20
         else:
-            # Moon with glow
-            draw.ellipse([680, 50, 760, 130], fill=(255, 255, 200), outline='black', width=2)
+            # Normal standing with idle bounce
+            bounce = math.sin(frame * 0.3) * 5
+            body_height = 120
+            body_width = 130
+            y_offset = 40 + bounce
         
-        # Smooth rolling hills
-        for i in range(3):
-            y_offset = math.sin(frame * 0.02 + i) * 10
-            draw.arc([-100, 350 + y_offset, 900, 550 + y_offset], 
-                    start=0, end=180, fill=(50 + i*30, 150 + i*20, 50), width=15)
+        # Body
+        draw.ellipse([150 - body_width//2, 150 + y_offset, 
+                      150 + body_width//2, 150 + body_height + y_offset], 
+                     fill=cat_color, outline='black', width=3)
+        
+        # Belly
+        draw.ellipse([150 - body_width//3, 170 + y_offset, 
+                      150 + body_width//3, 150 + body_height - 20 + y_offset], 
+                     fill=belly_color, outline='black', width=2)
+        
+        # HEAD (big and expressive)
+        head_size = 100
+        head_y = 60 + y_offset
+        
+        # Head shape (slightly squashed or stretched)
+        if action == "squash":
+            head_w = 120
+            head_h = 80
+        elif action == "stretch":
+            head_w = 80
+            head_h = 120
+        else:
+            head_w = 100
+            head_h = 100
+        
+        draw.ellipse([150 - head_w//2, head_y, 
+                      150 + head_w//2, head_y + head_h], 
+                     fill=cat_color, outline='black', width=3)
+        
+        # EARS (big triangle ears)
+        ear_points = [(150 - head_w//2 - 10, head_y + 20),
+                      (150 - head_w//4, head_y + 10),
+                      (150 - head_w//2 + 20, head_y + 40)]
+        draw.polygon(ear_points, fill=cat_color, outline='black', width=3)
+        
+        ear_points2 = [(150 + head_w//2 + 10, head_y + 20),
+                       (150 + head_w//4, head_y + 10),
+                       (150 + head_w//2 - 20, head_y + 40)]
+        draw.polygon(ear_points2, fill=cat_color, outline='black', width=3)
+        
+        # EYES (cartoon style)
+        if emotion == "surprised":
+            # Huge eyes (like Tom when scared)
+            eye_size = 25
+            draw.ellipse([120, head_y + 40, 120 + eye_size, head_y + 40 + eye_size], 
+                        fill='white', outline='black', width=3)
+            draw.ellipse([180, head_y + 40, 180 + eye_size, head_y + 40 + eye_size], 
+                        fill='white', outline='black', width=3)
+            draw.ellipse([127, head_y + 47, 133, head_y + 53], fill='black')
+            draw.ellipse([187, head_y + 47, 193, head_y + 53], fill='black')
+        elif emotion == "angry":
+            # Angry squinty eyes
+            draw.line([115, head_y + 50, 145, head_y + 60], fill='black', width=4)
+            draw.line([175, head_y + 60, 205, head_y + 50], fill='black', width=4)
+            draw.ellipse([120, head_y + 50, 145, head_y + 70], fill='white', outline='black', width=2)
+            draw.ellipse([175, head_y + 50, 200, head_y + 70], fill='white', outline='black', width=2)
+            draw.ellipse([127, head_y + 55, 138, head_y + 65], fill='black')
+            draw.ellipse([182, head_y + 55, 193, head_y + 65], fill='black')
+        else:
+            # Normal eyes with sparkle
+            draw.ellipse([120, head_y + 45, 148, head_y + 73], fill='white', outline='black', width=2)
+            draw.ellipse([172, head_y + 45, 200, head_y + 73], fill='white', outline='black', width=2)
+            draw.ellipse([127, head_y + 52, 140, head_y + 65], fill='black')
+            draw.ellipse([180, head_y + 52, 193, head_y + 65], fill='black')
+            # Cartoon sparkle
+            draw.ellipse([130, head_y + 55, 133, head_y + 58], fill='white')
+            draw.ellipse([183, head_y + 55, 186, head_y + 58], fill='white')
+        
+        # NOSE
+        draw.ellipse([145, head_y + 75, 155, head_y + 85], fill='pink', outline='black', width=2)
+        
+        # MOUTH (exaggerated)
+        if emotion == "surprised":
+            draw.arc([135, head_y + 85, 165, head_y + 105], start=0, end=180, fill='black', width=3)
+        elif emotion == "angry":
+            draw.arc([135, head_y + 85, 165, head_y + 100], start=180, end=360, fill='black', width=3)
+            # Teeth showing
+            draw.polygon([140, head_y + 92, 148, head_y + 100, 156, head_y + 92], fill='white', outline='black')
+        else:
+            # Smile
+            draw.arc([135, head_y + 80, 165, head_y + 100], start=0, end=180, fill='black', width=2)
+        
+        # WHISKERS
+        draw.line([110, head_y + 78, 70, head_y + 73], fill='black', width=1)
+        draw.line([110, head_y + 82, 70, head_y + 83], fill='black', width=1)
+        draw.line([190, head_y + 78, 230, head_y + 73], fill='black', width=1)
+        draw.line([190, head_y + 82, 230, head_y + 83], fill='black', width=1)
+        
+        # TAIL (curly and expressive)
+        tail_points = []
+        for i in range(10):
+            angle = math.sin(frame * 0.2 + i) * 0.5
+            tail_x = 150 + body_width//2 + i * 10
+            tail_y = 200 + y_offset + math.sin(i * 0.5 + frame * 0.3) * 15
+            tail_points.append((tail_x, tail_y))
+        
+        for i in range(len(tail_points)-1):
+            draw.line([tail_points[i], tail_points[i+1]], fill=cat_color, width=8)
         
         return img
-
-    @staticmethod
-    def draw_smooth_kid(img, draw, frame, color, name, action="playing"):
-        """Animated kid with smooth motion"""
-        # Bounce with easing
-        bounce = math.sin(frame * 0.1) * 8
-        # Waving with smooth rotation
-        wave = math.sin(frame * 0.3) * 20
-        
-        color_map = {
-            "yellow": (255, 255, 150),
-            "green": (150, 255, 150),
-            "pink": (255, 192, 203)
-        }
-        main_color = color_map.get(color, (255, 255, 150))
-        
-        # Body with bounce
-        draw.ellipse([60, 100 + bounce, 140, 180 + bounce], 
-                    fill=main_color, outline='black', width=3)
-        
-        # Head with slight rotation
-        head_rotation = math.sin(frame * 0.2) * 3
-        draw.ellipse([50 + head_rotation, 30 + bounce, 150 + head_rotation, 120 + bounce], 
-                    fill=(255, 220, 150), outline='black', width=3)
-        
-        # Animated eyes (blink)
-        if frame % 60 < 5:  # Blink every ~1 second
-            draw.line([75, 65, 95, 65], fill='black', width=3)
-            draw.line([105, 65, 125, 65], fill='black', width=3)
-        else:
-            draw.ellipse([75, 55, 95, 75], fill='white', outline='black', width=2)
-            draw.ellipse([105, 55, 125, 75], fill='white', outline='black', width=2)
-            draw.ellipse([80, 62, 88, 70], fill='black')
-            draw.ellipse([110, 62, 118, 70], fill='black')
-            # Sparkle
-            draw.ellipse([82, 60, 85, 63], fill='white')
-            draw.ellipse([112, 60, 115, 63], fill='white')
-        
-        # Waving arm
-        draw.line([140, 130 + bounce, 160 + wave/2, 100 + bounce], 
-                 fill=main_color, width=10)
-        draw.ellipse([155 + wave/2, 95 + bounce, 170 + wave/2, 110 + bounce], 
-                    fill=main_color, outline='black', width=2)
-        
-        # Smile that changes with bounce
-        smile_offset = bounce * 0.5
-        draw.arc([75, 80 + smile_offset, 125, 110 + smile_offset], 
-                start=0, end=180, fill='black', width=3)
-        
-        return img
-
-# ========== FRAME-BY-FRAME ANIMATION ==========
-
-def create_smooth_animation():
-    """Generate smooth frame-by-frame animation"""
     
+    @staticmethod
+    def draw_mouse(frame, action="idle", emotion="neutral"):
+        """Draw a Jerry-like mouse character"""
+        img = Image.new('RGBA', (300, 400), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img)
+        
+        # Brown mouse color
+        mouse_color = (160, 110, 60)
+        
+        # Small body (mouse is smaller than cat)
+        bounce = math.sin(frame * 0.4) * 3
+        
+        # Body
+        draw.ellipse([100, 120 + bounce, 200, 220 + bounce], 
+                     fill=mouse_color, outline='black', width=3)
+        
+        # BIG EARS (classic mouse)
+        draw.ellipse([85, 60 + bounce, 125, 100 + bounce], 
+                     fill=mouse_color, outline='black', width=3)
+        draw.ellipse([115, 55 + bounce, 155, 95 + bounce], 
+                     fill=mouse_color, outline='black', width=3)
+        # Inner ear
+        draw.ellipse([92, 67 + bounce, 118, 93 + bounce], fill='pink')
+        draw.ellipse([122, 62 + bounce, 148, 88 + bounce], fill='pink')
+        
+        # HEAD
+        draw.ellipse([110, 90 + bounce, 190, 150 + bounce], 
+                     fill=mouse_color, outline='black', width=3)
+        
+        # EYES (cute and big)
+        if emotion == "scared":
+            eye_size = 20
+            draw.ellipse([125, 110 + bounce, 145, 130 + bounce], fill='white', outline='black', width=2)
+            draw.ellipse([155, 110 + bounce, 175, 130 + bounce], fill='white', outline='black', width=2)
+            draw.ellipse([130, 115 + bounce, 140, 125 + bounce], fill='black')
+            draw.ellipse([160, 115 + bounce, 170, 125 + bounce], fill='black')
+        else:
+            # Happy eyes
+            draw.ellipse([125, 110 + bounce, 145, 130 + bounce], fill='white', outline='black', width=2)
+            draw.ellipse([155, 110 + bounce, 175, 130 + bounce], fill='white', outline='black', width=2)
+            draw.ellipse([130, 115 + bounce, 140, 125 + bounce], fill='black')
+            draw.ellipse([160, 115 + bounce, 170, 125 + bounce], fill='black')
+            # Sparkle
+            draw.ellipse([132, 117 + bounce, 134, 119 + bounce], fill='white')
+            draw.ellipse([162, 117 + bounce, 164, 119 + bounce], fill='white')
+        
+        # NOSE
+        draw.ellipse([145, 135 + bounce, 155, 145 + bounce], fill='pink', outline='black', width=2)
+        
+        # MOUSE SMILE
+        draw.arc([135, 140 + bounce, 165, 155 + bounce], start=0, end=180, fill='black', width=2)
+        
+        # WHISKERS
+        draw.line([110, 140 + bounce, 70, 135 + bounce], fill='black', width=1)
+        draw.line([110, 145 + bounce, 70, 145 + bounce], fill='black', width=1)
+        draw.line([190, 140 + bounce, 230, 135 + bounce], fill='black', width=1)
+        draw.line([190, 145 + bounce, 230, 145 + bounce], fill='black', width=1)
+        
+        return img
+    
+    @staticmethod
+    def draw_cartoon_scene(frame, scene_type="fight"):
+        """Draw classic cartoon background"""
+        img = Image.new('RGB', (800, 500), (255, 255, 200))
+        draw = ImageDraw.Draw(img)
+        
+        # Floor
+        draw.rectangle([0, 400, 800, 500], fill=(200, 150, 100))
+        draw.line([0, 400, 800, 400], fill='black', width=3)
+        
+        # Wall details (like classic cartoons)
+        for i in range(0, 800, 50):
+            draw.line([i, 400, i+25, 380], fill=(180, 130, 80), width=2)
+        
+        # Window
+        draw.rectangle([600, 100, 780, 300], fill=(200, 220, 255), outline='black', width=4)
+        draw.line([690, 100, 690, 300], fill='black', width=3)
+        draw.line([600, 200, 780, 200], fill='black', width=3)
+        
+        # Curtains
+        draw.arc([580, 80, 620, 120], start=0, end=180, fill=(255, 100, 100), outline='black', width=2)
+        draw.arc([760, 80, 800, 120], start=0, end=180, fill=(255, 100, 100), outline='black', width=2)
+        
+        # Classic cartoon elements
+        if scene_type == "fight":
+            # Action lines in background
+            for i in range(10):
+                x = random.randint(0, 800)
+                draw.line([x, 0, x+20, 50], fill='black', width=2)
+        
+        return img
+
+# ========== FRAME-BY-FRAME CARTOON ANIMATION ==========
+
+def create_classic_cartoon():
+    """Create frame-by-frame classic cartoon animation"""
     frames = []
     total_frames = 180  # 30 seconds at 6fps
     
     for frame in range(total_frames):
         # Create canvas
-        canvas = Image.new('RGB', (800, 600), 'white')
+        if frame < 60:
+            scene = "fight"
+        elif frame < 120:
+            scene = "peaceful"
+        else:
+            scene = "play"
+        
+        canvas = ClassicCartoon.draw_cartoon_scene(frame, scene)
         draw = ImageDraw.Draw(canvas)
         
-        # Add background with transition
-        bg = SmoothAnimator.draw_smooth_background(frame)
-        canvas.paste(bg, (0, 0))
-        
-        # Calculate animation progress
-        progress = frame / total_frames
-        
-        # ===== ACT 1: FIGHT (frames 0-60) =====
+        # ===== ACT 1: CHASE & FIGHT (0-60 frames) =====
         if frame < 60:
-            t = frame / 60  # 0 to 1
+            t = frame / 60
             
-            # Smooth approach using easing
-            red_x = -300 + (400 * ease_in_out_cubic(t))
-            blue_x = 1100 - (400 * ease_in_out_cubic(t))
-            
-            # Fight action
-            if frame > 20:
-                # Punch timing
-                punch_frame = (frame - 20) % 20
-                if punch_frame < 5:
-                    # Squash on punch
-                    squash = math.sin(punch_frame * math.pi / 5) * 0.5
-                    action = "attack"
-                elif punch_frame < 10:
-                    # Hit reaction
-                    squash = math.sin((punch_frame - 5) * math.pi / 5) * 0.3
-                    action = "hit"
-                else:
-                    squash = 0
-                    action = "idle"
+            # Cat and mouse positions (classic chase)
+            if frame < 20:
+                # Cat chasing mouse
+                cat_x = 50 + (frame * 15)
+                mouse_x = 300 - (frame * 5)
+                cat_action = "stretch"
+                mouse_action = "stretch"
+                cat_emotion = "angry"
+                mouse_emotion = "scared"
+            elif frame < 40:
+                # Cat about to catch mouse
+                cat_x = 350
+                mouse_x = 370
+                cat_action = "stretch"
+                mouse_action = "squash"
+                cat_emotion = "angry"
+                mouse_emotion = "scared"
             else:
-                squash = 0
-                action = "idle"
+                # Fight scene - dramatic poses
+                if frame % 20 < 10:
+                    cat_x = 300
+                    mouse_x = 400
+                    cat_action = "squash"
+                    mouse_action = "stretch"
+                    cat_emotion = "surprised"
+                    mouse_emotion = "angry"
+                else:
+                    cat_x = 400
+                    mouse_x = 300
+                    cat_action = "stretch"
+                    mouse_action = "squash"
+                    cat_emotion = "angry"
+                    mouse_emotion = "surprised"
             
-            # Draw fighters
-            fighter1_img = Image.new('RGBA', (300, 400), (0,0,0,0))
-            fighter1_draw = ImageDraw.Draw(fighter1_img)
-            SmoothAnimator.draw_smooth_fighter(fighter1_img, fighter1_draw, frame, action, squash)
-            canvas.paste(fighter1_img, (int(red_x), 100), fighter1_img)
+            # Draw cat
+            cat = ClassicCartoon.draw_cat(frame, action=cat_action, emotion=cat_emotion)
+            canvas.paste(cat, (int(cat_x), 50), cat)
             
-            fighter2_img = Image.new('RGBA', (300, 400), (0,0,0,0))
-            fighter2_draw = ImageDraw.Draw(fighter2_img)
-            SmoothAnimator.draw_smooth_fighter(fighter2_img, fighter2_draw, frame, action, -squash)
-            canvas.paste(fighter2_img, (int(blue_x), 100), fighter2_img)
+            # Draw mouse
+            mouse = ClassicCartoon.draw_mouse(frame, action=mouse_action, emotion=mouse_emotion)
+            canvas.paste(mouse, (int(mouse_x), 100), mouse)
             
-            # Action text with fade
-            if frame > 20 and frame % 20 < 10:
-                text = "POW!" if frame % 40 < 20 else "BAM!"
-                text_alpha = int(255 * (1 - (frame % 10) / 10))
-                draw.text((350, 250), text, fill=(255, text_alpha, text_alpha))
+            # Action effects
+            if frame > 20:
+                # POW! BAM! effects
+                if frame % 20 < 10:
+                    draw.text((350, 200), "POW!", fill=(255, 0, 0), 
+                             font=None, stroke_width=2, stroke_fill='black')
+                    # Stars around head
+                    for i in range(3):
+                        star_x = 150 + i * 50
+                        star_y = 150 + math.sin(frame * 0.5 + i) * 20
+                        draw.text((star_x, star_y), "★", fill=(255, 215, 0))
+                else:
+                    draw.text((350, 200), "BAM!", fill=(255, 0, 0),
+                             font=None, stroke_width=2, stroke_fill='black')
         
-        # ===== ACT 2: PEACEFUL (frames 60-120) =====
+        # ===== ACT 2: PEACEFUL (60-120 frames) =====
         elif frame < 120:
             t = (frame - 60) / 60
             
-            # Smooth tree fade-in
-            tree_alpha = int(255 * ease_in_out_cubic(t))
+            # Cat and mouse resting (tired from fight)
+            cat_x = 150
+            mouse_x = 500
             
-            # Draw trees with fade
-            for i, x in enumerate([100, 250, 400, 550, 700]):
-                alpha = min(255, tree_alpha - i * 30)
-                if alpha > 0:
-                    draw.rectangle([x, 350, x+20, 450], fill=(101, 67, 33))
-                    draw.ellipse([x-20, 320, x+40, 370], fill=(0, 100, 0))
+            # Tired poses
+            cat_action = "squash"  # Collapsed
+            mouse_action = "squash"
+            cat_emotion = "neutral"
+            mouse_emotion = "neutral"
             
-            # Gentle floating particles (fireflies)
-            for _ in range(int(20 * t)):
-                fx = 100 + math.sin(frame * 0.1 + _) * 200
-                fy = 200 + math.cos(frame * 0.15 + _) * 100
-                draw.ellipse([fx-2, fy-2, fx+2, fy+2], fill=(255, 255, 100))
+            # Draw characters
+            cat = ClassicCartoon.draw_cat(frame, action=cat_action, emotion=cat_emotion)
+            canvas.paste(cat, (cat_x, 150), cat)
             
-            # Peaceful text with smooth fade
-            if t > 0.5:
-                text_alpha = int(255 * ((t - 0.5) * 2))
-                draw.text((300, 50), "Peaceful Evening...", 
-                         fill=(255, 255, 255, text_alpha))
+            mouse = ClassicCartoon.draw_mouse(frame, action=mouse_action, emotion=mouse_emotion)
+            canvas.paste(mouse, (mouse_x, 200), mouse)
+            
+            # ZZZ sleep effects
+            if t > 0.3:
+                for i in range(3):
+                    z_y = 100 - i * 20 - (frame % 60) / 3
+                    draw.text((cat_x + 50 + i * 10, z_y), "z", fill=(100, 100, 200))
+                    draw.text((mouse_x - 50 - i * 10, z_y), "z", fill=(100, 100, 200))
+            
+            # Peaceful music notes
+            if t > 0.6:
+                note_x = 400 + math.sin(frame * 0.1) * 50
+                note_y = 300 + math.cos(frame * 0.15) * 30
+                draw.text((note_x, note_y), "♪", fill=(100, 100, 255))
+                draw.text((note_x + 30, note_y - 20), "♫", fill=(100, 100, 255))
         
-        # ===== ACT 3: KIDS PLAYING (frames 120-180) =====
+        # ===== ACT 3: PLAYING TOGETHER (120-180 frames) =====
         else:
             t = (frame - 120) / 60
             
-            # Kids with smooth circular motion
-            kids = [
-                ("yellow", "Lily", 0),
-                ("green", "Max", 120),
-                ("pink", "Leo", 240)
-            ]
+            # Characters playing together (friends now)
+            if frame % 40 < 20:
+                cat_x = 250
+                mouse_x = 450
+                cat_action = "idle"
+                mouse_action = "idle"
+            else:
+                cat_x = 450
+                mouse_x = 250
+                cat_action = "idle"
+                mouse_action = "idle"
             
-            for i, (color, name, offset) in enumerate(kids):
-                # Smooth circular path with easing
-                angle = (frame * 0.05) + math.radians(offset)
-                x = 400 + math.cos(angle) * 200
-                y = 300 + math.sin(angle) * 80
-                
-                # Draw kid with smooth animation
-                kid_img = Image.new('RGBA', (200, 250), (0,0,0,0))
-                kid_draw = ImageDraw.Draw(kid_img)
-                SmoothAnimator.draw_smooth_kid(kid_img, kid_draw, frame, color, name)
-                canvas.paste(kid_img, (int(x)-100, int(y)-150), kid_img)
+            # Happy emotions
+            cat_emotion = "neutral"
+            mouse_emotion = "neutral"
             
-            # Floating balloons
-            for b in range(5):
-                bx = 100 + (frame * 0.5 + b * 150) % 700
-                by = 400 + math.sin(frame * 0.1 + b) * 50
-                draw.ellipse([bx-10, by-15, bx+10, by+5], fill=(255, 100, 100))
-                draw.line([bx, by+5, bx, by+25], fill='black', width=1)
+            # Draw characters
+            cat = ClassicCartoon.draw_cat(frame, action=cat_action, emotion=cat_emotion)
+            canvas.paste(cat, (cat_x, 100), cat)
             
-            # Happy text
-            if t > 0.8:
-                draw.text((300, 50), "Happy Together!", fill=(255, 255, 255))
+            mouse = ClassicCartoon.draw_mouse(frame, action=mouse_action, emotion=mouse_emotion)
+            canvas.paste(mouse, (mouse_x, 150), mouse)
+            
+            # Playful elements
+            # Ball
+            ball_x = 400 + math.sin(frame * 0.2) * 100
+            ball_y = 350 + abs(math.sin(frame * 0.3)) * 30
+            draw.ellipse([ball_x-15, ball_y-15, ball_x+15, ball_y+15], 
+                        fill=(255, 100, 100), outline='black', width=3)
+            
+            # Hearts (friendship)
+            if t > 0.7:
+                heart_x = 350 + math.sin(frame * 0.2) * 20
+                heart_y = 200 + math.cos(frame * 0.3) * 20
+                draw.text((heart_x, heart_y), "❤️", fill=(255, 0, 0))
         
-        # Add smooth framerate display
-        draw.text((10, 10), f"Frame: {frame}/180", fill=(255,255,255))
+        # Add frame number (like traditional animation)
+        draw.text((10, 10), f"Frame: {frame}", fill=(100, 100, 100))
         
         frames.append(canvas)
     
@@ -377,146 +433,124 @@ def create_smooth_animation():
 
 # ========== STREAMLIT UI ==========
 
-st.markdown('<h1 style="text-align: center;">🎨 SMOOTH CARTOON ANIMATION 🎨</h1>', unsafe_allow_html=True)
-st.markdown('<p style="text-align: center;">Professional frame-by-frame animation • Like FlipaClip/Procreate</p>', unsafe_allow_html=True)
+st.markdown('<h1 class="cartoon-title" style="text-align: center;">🐱 CLASSIC CARTOON ANIMATION 🐭</h1>', unsafe_allow_html=True)
+st.markdown('<p style="text-align: center;">Hand-drawn frame-by-frame • Tom & Jerry Style • Each frame matters!</p>', unsafe_allow_html=True)
 
 # Animation controls
 col1, col2, col3 = st.columns([1, 2, 1])
 
 with col2:
-    quality = st.select_slider(
-        "Animation Quality",
-        options=["Fast (3 fps)", "Smooth (6 fps)", "Buttery (12 fps)"],
-        value="Smooth (6 fps)"
+    frame_rate = st.select_slider(
+        "Animation Style",
+        options=["Classic (6 fps)", "Smooth (12 fps)", "Traditional (8 fps)"],
+        value="Classic (6 fps)"
     )
     
-    play = st.button("▶️ PLAY SMOOTH ANIMATION", use_container_width=True)
+    play = st.button("🎬 PLAY CLASSIC CARTOON", use_container_width=True)
 
-# Quality settings
+# Frame rate mapping
 fps_map = {
-    "Fast (3 fps)": 3,
-    "Smooth (6 fps)": 6,
-    "Buttery (12 fps)": 12
+    "Classic (6 fps)": 6,
+    "Smooth (12 fps)": 12,
+    "Traditional (8 fps)": 8
 }
 
 if play:
-    fps = fps_map[quality]
+    fps = fps_map[frame_rate]
     frame_duration = 1 / fps
     
-    with st.spinner("Generating smooth animation frames..."):
-        frames = create_smooth_animation()
+    with st.spinner("Drawing each frame by hand (like traditional animation)..."):
+        frames = create_classic_cartoon()
     
-    # Animation placeholder
+    # Animation player
     animation_container = st.empty()
     progress_bar = st.progress(0)
-    status_text = st.empty()
-    time_text = st.empty()
+    frame_counter = st.empty()
+    time_display = st.empty()
     
-    # Play animation
+    # Play each frame
     for i, frame in enumerate(frames):
         animation_container.image(frame, use_column_width=True)
         progress = i / len(frames)
         progress_bar.progress(progress)
         
-        seconds = int(i / fps)
-        time_text.markdown(f"### ⏱️ {seconds} / 30 seconds")
-        
-        # Status updates
-        if seconds < 10:
-            status_text.markdown("### ⚔️ EPIC BATTLE ⚔️")
-        elif seconds < 20:
-            status_text.markdown("### 🌅 PEACEFUL EVENING 🌅")
-        else:
-            status_text.markdown("### 👧 KIDS PLAYING 👦")
+        frame_counter.markdown(f"### 🎞️ Frame {i}/{len(frames)}")
+        time_display.markdown(f"### ⏱️ {int(i / fps)} / 30 seconds")
         
         time.sleep(frame_duration)
     
-    # Final celebration
-    status_text.success("✅ Animation Complete! 🎉")
+    # Grand finale
     st.balloons()
+    st.success("✅ Classic Cartoon Complete! Just like Tom & Jerry!")
     
     # Replay button
     if st.button("🔄 Watch Again", use_container_width=True):
         st.rerun()
 
 else:
-    # Preview with features
+    # Preview
     st.markdown("---")
     
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        st.markdown("### 🎬 SMOOTH MOTION")
-        st.markdown("• Easing functions")
-        st.markdown("• Squash & stretch")
-        st.markdown("• Frame interpolation")
+        st.markdown("### 🎬 ACT 1: THE CHASE")
+        preview_cat = ClassicCartoon.draw_cat(0, action="stretch", emotion="angry")
+        st.image(preview_cat, use_column_width=True)
+        st.caption("Cat chasing mouse • 0-10 seconds")
     
     with col2:
-        st.markdown("### 🎨 CARTOON EFFECTS")
-        st.markdown("• Hand-drawn style")
-        st.markdown("• Lip sync ready")
-        st.markdown("• Particle effects")
+        st.markdown("### 😴 ACT 2: PEACEFUL")
+        st.markdown("*Both exhausted from chase*")
+        st.caption("Resting • 10-20 seconds")
     
     with col3:
-        st.markdown("### ⚡ PRO FEATURES")
-        st.markdown("• 6-12 fps options")
-        st.markdown("• Smooth transitions")
-        st.markdown("• Like FlipaClip!")
+        st.markdown("### ❤️ ACT 3: FRIENDS")
+        st.markdown("*Playing together happily*")
+        st.caption("Happy ending • 20-30 seconds")
     
     st.markdown("---")
     
-    # Demo preview
-    st.markdown("### 📺 Preview (static frames)")
-    preview_cols = st.columns(3)
-    
-    # Show keyframes
-    keyframes = create_smooth_animation()
-    for i, col in enumerate(preview_cols):
-        with col:
-            st.image(keyframes[i * 60], use_column_width=True)
-            st.caption(f"Frame {i * 60} - {i * 10} seconds")
-    
-    st.info("💡 **Pro Tip:** Select 'Buttery (12 fps)' for the smoothest animation like professional cartoons!")
-
-# Instructions
-with st.expander("🎬 Animation Features Explained"):
-    st.markdown("""
-    ### Professional Animation Techniques Used:
-    
-    **1. Easing Functions** 🤸
-    - `ease_in_out_cubic` - Smooth starts and stops
-    - `ease_out_back` - Cartoon spring effect
-    
-    **2. Squash and Stretch** 💪
-    - Characters squash when hitting
-    - Stretch when attacking
-    - Like classic Disney animation!
-    
-    **3. Frame-by-Frame** 🎞️
-    - 180 total frames (6 fps)
-    - Each frame drawn individually
-    - Like FlipaClip workflow
-    
-    **4. Smooth Transitions** 🌊
-    - Day → Sunset → Night
-    - Float in/out effects
-    - Particle animations
-    
-    **5. Character Animation** 🎭
-    - Idle bounce
-    - Blinking eyes
-    - Waving arms
-    - Follow-through motion
-    
-    ### Quality Options:
-    - **Fast (3 fps)** - Quick preview
-    - **Smooth (6 fps)** - Standard cartoon
-    - **Buttery (12 fps)** - Professional grade
-    """)
+    # Features
+    with st.expander("🎨 What makes this CLASSIC CARTOON style?"):
+        st.markdown("""
+        ### Traditional Animation Techniques:
+        
+        **1. Frame-by-Frame Drawing** 📝
+        - Each frame drawn individually
+        - No computer tweening
+        - Like Disney and Hanna-Barbera
+        
+        **2. Exaggerated Movements** 💪
+        - Squash and stretch on every action
+        - Eyes pop out when surprised
+        - Limbs stretch during chase
+        
+        **3. Cartoon Physics** 🎯
+        - Characters hang in air before falling
+        - Stars spin around heads
+        - Action lines for speed
+        
+        **4. Personality in Every Pose** 🎭
+        - Cat is always angry/chasing
+        - Mouse is clever/playful
+        - Expressions change dramatically
+        
+        **5. Classic Visual Elements** 🖼️
+        - Hand-drawn aesthetic
+        - Sketchy outlines
+        - Traditional backgrounds
+        
+        ### Like watching:
+        - Tom & Jerry
+        - Looney Tunes
+        - Pink Panther
+        - Classic Disney shorts
+        """)
 
 st.markdown("---")
 st.markdown("""
 <div style="text-align: center; color: #666;">
-    <p>✨ Professional smooth animation • Like FlipaClip/Procreate Dreams • 30 seconds ✨</p>
+    <p>🐱 Each frame hand-crafted • 180 individual drawings • True classic cartoon style 🐭</p>
 </div>
 """, unsafe_allow_html=True)
