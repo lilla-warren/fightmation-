@@ -1,3 +1,1 @@
-streamlit==1.25.0
-plotly==5.14.1
-numpy==1.23.5
+# No packages needed - Streamlit comes with everything
