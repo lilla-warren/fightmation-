@@ -35,7 +35,8 @@ if st.button("▶️ PLAY 30-SECOND ANIMATION", type="primary", use_container_wi
                 st.markdown("## 🔵")
                 st.caption("Blue Fighter")
         
-        progress_bar.progress(step * 0.5)
+        # Fixed: progress between 0.0 and 0.1 (0-10% of total time)
+        progress_bar.progress(step / 200)  # 0.0 to 0.1
         time.sleep(0.1)
     
     # Fighting (8 seconds)
@@ -52,7 +53,8 @@ if st.button("▶️ PLAY 30-SECOND ANIMATION", type="primary", use_container_wi
                 st.markdown("###     🦶")
                 status_text.markdown("### 🥋 BLUE STRIKES! 🥋")
         
-        progress_bar.progress(10 + punch * 1.25)
+        # Fixed: progress between 0.1 and 0.33 (10-33% of total time)
+        progress_bar.progress(0.1 + (punch / 80))  # 0.1 to 0.3
         time.sleep(0.5)
     
     # Both fall
@@ -61,6 +63,9 @@ if st.button("▶️ PLAY 30-SECOND ANIMATION", type="primary", use_container_wi
             st.markdown("## 😫  😫")
             st.markdown("### Both fighters are down!")
             st.markdown("💨 💨 💨")
+        
+        # Fixed: progress between 0.3 and 0.33
+        progress_bar.progress(0.3 + (fall / 300))
         time.sleep(0.1)
     
     time.sleep(1)
@@ -81,7 +86,8 @@ if st.button("▶️ PLAY 30-SECOND ANIMATION", type="primary", use_container_wi
             st.markdown("🌲              🌳              🌲")
             st.markdown("🌲 🌲           🌳 🌳           🌲 🌲")
         
-        progress_bar.progress(30 + step * 0.5)
+        # Fixed: progress between 0.33 and 0.5
+        progress_bar.progress(0.33 + (step / 120))  # 0.33 to 0.5
         time.sleep(0.15)
     
     # Night with stars
@@ -97,7 +103,8 @@ if st.button("▶️ PLAY 30-SECOND ANIMATION", type="primary", use_container_wi
             st.markdown("🌲              🌳              🌲")
             st.markdown("🌲 🌲           🌳 🌳           🌲 🌲")
         
-        progress_bar.progress(40 + step * 0.5)
+        # Fixed: progress between 0.5 and 0.66
+        progress_bar.progress(0.5 + (step / 120))  # 0.5 to 0.66
         time.sleep(0.15)
     
     time.sleep(1)
@@ -136,7 +143,6 @@ if st.button("▶️ PLAY 30-SECOND ANIMATION", type="primary", use_container_wi
                     color = "🩷"
                 
                 with cols[x_pos]:
-                    bounce = abs(math.sin(angle * 5 + i)) * 20
                     st.markdown(f"### {color} {kid}")
                     st.markdown(f"🎈")
             
@@ -144,7 +150,8 @@ if st.button("▶️ PLAY 30-SECOND ANIMATION", type="primary", use_container_wi
             st.markdown("---")
             st.markdown("🛝  🧸  🎠  🤸  🎪")
         
-        progress_bar.progress(50 + angle_step * 1.25)
+        # Fixed: progress between 0.66 and 1.0
+        progress_bar.progress(0.66 + (angle_step / 118))  # 0.66 to 1.0
         time.sleep(0.1)
     
     # Final celebration
@@ -163,7 +170,7 @@ if st.button("▶️ PLAY 30-SECOND ANIMATION", type="primary", use_container_wi
         with cols[2]:
             st.markdown("### 🩷 👦")
     
-    progress_bar.progress(100)
+    progress_bar.progress(1.0)  # 100% complete
     status_text.markdown("### 🎉 ANIMATION COMPLETE! 🎉")
     
     st.balloons()
